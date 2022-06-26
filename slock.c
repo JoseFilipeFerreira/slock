@@ -8,17 +8,15 @@ enum { INIT, INPUT, FAILED, NUMCOLS };
 
 #include "arg.h"
 #include "config.h"
-#include "util.h"
 
 #include <Imlib2.h>
 #include <X11/XF86keysym.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/keysym.h>
+#include <crypt.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <grp.h>
 #include <linux/oom.h>
 #include <pwd.h>
@@ -26,7 +24,6 @@ enum { INIT, INPUT, FAILED, NUMCOLS };
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 char* argv0;
@@ -53,6 +50,8 @@ static void die(const char* errstr, ...) {
     va_end(ap);
     exit(1);
 }
+
+#define MIN(A, B) A < B ? A : B
 
 static void dontkillme(void) {
     FILE* f;
@@ -370,16 +369,16 @@ int main(int argc, char** argv) {
     int height = scr->height;
 
     int pixelSize = 10;
-    for (int y = 0; y < height; y = min(y + pixelSize, scr->height)) {
-        for (int x = 0; x < width; x = min(x + pixelSize, scr->width)) {
+    for (int y = 0; y < height; y = MIN(y + pixelSize, scr->height)) {
+        for (int x = 0; x < width; x = MIN(x + pixelSize, scr->width)) {
             int red = 0;
             int green = 0;
             int blue = 0;
 
             Imlib_Color pixel;
 
-            int height_rect = min(pixelSize, scr->height - y);
-            int width_rect = min(pixelSize, scr->width - x);
+            int height_rect = MIN(pixelSize, scr->height - y);
+            int width_rect = MIN(pixelSize, scr->width - x);
 
             for (int j = 0; j < height_rect; j++) {
                 for (int i = 0; i < width_rect; i++) {

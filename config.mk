@@ -16,16 +16,8 @@ LIBS = -L/usr/lib -lc -lcrypt -L${X11LIB} -lX11 -lXext -lXrandr -lImlib2
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" -D_DEFAULT_SOURCE -DHAVE_SHADOW_H
-CFLAGS = -std=c2x -g -Wall -Wextra -Wdouble-promotion -Werror=pedantic -Werror=vla -pedantic-errors -Wfatal-errors ${INCS} ${CPPFLAGS}
+CFLAGS = -std=c2x -O2 -Wall -Wextra -Wdouble-promotion -Werror=pedantic -Werror=vla -pedantic-errors -Wfatal-errors ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
-
-# On OpenBSD and Darwin remove -lcrypt from LIBS
-#LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lXext -lXrandr
-# On *BSD remove -DHAVE_SHADOW_H from CPPFLAGS
-# On NetBSD add -D_NETBSD_SOURCE to CPPFLAGS
-#CPPFLAGS = -DVERSION=\"${VERSION}\" -D_BSD_SOURCE -D_NETBSD_SOURCE
-# On OpenBSD set COMPATSRC to empty
-#COMPATSRC =
 
 # compiler and linker
 CC = cc
