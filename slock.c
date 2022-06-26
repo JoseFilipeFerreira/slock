@@ -4,7 +4,10 @@
 #    include <shadow.h>
 #endif
 
+enum { INIT, INPUT, FAILED, NUMCOLS };
+
 #include "arg.h"
+#include "config.h"
 #include "util.h"
 
 #include <Imlib2.h>
@@ -15,7 +18,9 @@
 #include <X11/keysym.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <grp.h>
+#include <linux/oom.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -26,7 +31,6 @@
 
 char* argv0;
 
-enum { INIT, INPUT, FAILED, NUMCOLS };
 
 struct lock {
     int screen;
@@ -42,8 +46,6 @@ struct xrandr {
     int errbase;
 };
 
-#include "config.h"
-
 static void die(const char* errstr, ...) {
     va_list ap;
 
@@ -52,9 +54,6 @@ static void die(const char* errstr, ...) {
     va_end(ap);
     exit(1);
 }
-
-#include <fcntl.h>
-#include <linux/oom.h>
 
 static void dontkillme(void) {
     FILE* f;
@@ -368,6 +367,40 @@ int main(int argc, char** argv) {
     imlib_context_set_visual(DefaultVisual(dpy, 0));
     imlib_context_set_drawable(RootWindow(dpy, XScreenNumberOfScreen(scr)));
     imlib_copy_drawable_to_image(0, 0, 0, scr->width, scr->height, 0, 0, 1);
+
+    /*Pixelation*/
+    int width = scr->width;
+    int height = scr->height;
+
+    int pixelSize = 10;
+    for (int y = 0; y < height; y = min(y + pixelSize, scr->height) ){
+        for (int x = 0; x < width; x = min(x + pixelSize, scr->width)) {
+            int red = 0;
+            int green = 0;
+            int blue = 0;
+
+            Imlib_Color pixel;
+
+            int height_rect = min(pixelSize, scr->height - y);
+            int width_rect = min(pixelSize, scr->width - x);
+
+            for (int j = 0; j < height_rect; j++) {
+                for (int i = 0; i < width_rect; i++) {
+                    imlib_image_query_pixel(x + i, y + j, &pixel);
+                    red += pixel.red;
+                    green += pixel.green;
+                    blue += pixel.blue;
+                }
+            }
+            int rect_area = height_rect * width_rect;
+            red /= rect_area;
+            green /= rect_area;
+            blue /= rect_area;
+
+            imlib_context_set_color(red, green, blue, pixel.alpha);
+            imlib_image_fill_rectangle(x, y, width_rect, height_rect);
+        }
+    }
 
     /* check for Xrandr support */
     rr.active = XRRQueryExtension(dpy, &rr.evbase, &rr.errbase);
