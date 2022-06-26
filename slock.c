@@ -31,7 +31,6 @@ enum { INIT, INPUT, FAILED, NUMCOLS };
 
 char* argv0;
 
-
 struct lock {
     int screen;
     Window root, win;
@@ -117,7 +116,7 @@ readpw(Display* dpy, struct xrandr* rr, struct lock** locks, int nscreens, const
     while (running && !XNextEvent(dpy, &ev)) {
         if (ev.type == KeyPress) {
             char buf[32];
-            explicit_bzero(&buf, sizeof(buf));
+            memset(&buf, 0, sizeof(buf));
             KeySym ksym;
             int num = XLookupString(&ev.xkey, buf, sizeof(buf), &ksym, 0);
             if (IsKeypadKey(ksym)) {
@@ -153,11 +152,11 @@ readpw(Display* dpy, struct xrandr* rr, struct lock** locks, int nscreens, const
                         XBell(dpy, 100);
                         failure = 1;
                     }
-                    explicit_bzero(&passwd, sizeof(passwd));
+                    memset(&passwd, 0, sizeof(passwd));
                     len = 0;
                     break;
                 case XK_Escape:
-                    explicit_bzero(&passwd, sizeof(passwd));
+                    memset(&passwd, 0, sizeof(passwd));
                     len = 0;
                     break;
                 case XK_BackSpace:
@@ -173,11 +172,7 @@ readpw(Display* dpy, struct xrandr* rr, struct lock** locks, int nscreens, const
             unsigned int color = len ? INPUT : ((failure || failonclear) ? FAILED : INIT);
             if (running && oldc != color) {
                 for (int screen = 0; screen < nscreens; screen++) {
-                    if (locks[screen]->bgmap) {
-                        XSetWindowBackgroundPixmap(dpy, locks[screen]->win, locks[screen]->bgmap);
-                    } else {
-                        XSetWindowBackground(dpy, locks[screen]->win, locks[screen]->colors[color]);
-                    }
+                    XSetWindowBackgroundPixmap(dpy, locks[screen]->win, locks[screen]->bgmap);
                     XClearWindow(dpy, locks[screen]->win);
                 }
                 oldc = color;
@@ -214,21 +209,19 @@ static struct lock* lockscreen(Display* dpy, struct xrandr* rr, int screen, Imli
     lock->screen = screen;
     lock->root = RootWindow(dpy, lock->screen);
 
-    if (image && *image) {
-        lock->bgmap = XCreatePixmap(
-            dpy,
-            lock->root,
-            DisplayWidth(dpy, lock->screen),
-            DisplayHeight(dpy, lock->screen),
-            DefaultDepth(dpy, lock->screen));
-        imlib_context_set_image(*image);
-        imlib_context_set_display(dpy);
-        imlib_context_set_visual(DefaultVisual(dpy, lock->screen));
-        imlib_context_set_colormap(DefaultColormap(dpy, lock->screen));
-        imlib_context_set_drawable(lock->bgmap);
-        imlib_render_image_on_drawable(0, 0);
-        imlib_free_image();
-    }
+    lock->bgmap = XCreatePixmap(
+        dpy,
+        lock->root,
+        DisplayWidth(dpy, lock->screen),
+        DisplayHeight(dpy, lock->screen),
+        DefaultDepth(dpy, lock->screen));
+    imlib_context_set_image(*image);
+    imlib_context_set_display(dpy);
+    imlib_context_set_visual(DefaultVisual(dpy, lock->screen));
+    imlib_context_set_colormap(DefaultColormap(dpy, lock->screen));
+    imlib_context_set_drawable(lock->bgmap);
+    imlib_render_image_on_drawable(0, 0);
+    imlib_free_image();
 
     for (i = 0; i < NUMCOLS; i++) {
         XAllocNamedColor(dpy, DefaultColormap(dpy, lock->screen), colorname[i], &color, &dummy);
@@ -368,12 +361,16 @@ int main(int argc, char** argv) {
     imlib_context_set_drawable(RootWindow(dpy, XScreenNumberOfScreen(scr)));
     imlib_copy_drawable_to_image(0, 0, 0, scr->width, scr->height, 0, 0, 1);
 
+    if (!image) {
+        die("could not take screenshot");
+    }
+
     /*Pixelation*/
     int width = scr->width;
     int height = scr->height;
 
     int pixelSize = 10;
-    for (int y = 0; y < height; y = min(y + pixelSize, scr->height) ){
+    for (int y = 0; y < height; y = min(y + pixelSize, scr->height)) {
         for (int x = 0; x < width; x = min(x + pixelSize, scr->width)) {
             int red = 0;
             int green = 0;
