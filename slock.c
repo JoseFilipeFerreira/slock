@@ -110,7 +110,7 @@ readpw(Display* dpy, struct xrandr* rr, struct lock** locks, int nscreens, const
     unsigned int len = 0;
     int running = 1;
     int failure = 0;
-    int oldc = INIT;
+    unsigned int oldc = INIT;
 
     while (running && !XNextEvent(dpy, &ev)) {
         if (ev.type == KeyPress) {
@@ -417,19 +417,6 @@ int main(int argc, char** argv) {
     /* did we manage to lock everything? */
     if (nlocks != nscreens) {
         return 1;
-    }
-
-    /* run post-lock command */
-    if (argc > 0) {
-        switch (fork()) {
-            case -1:
-                die("slock: fork failed: %s\n", strerror(errno));
-            case 0:
-                if (close(ConnectionNumber(dpy)) < 0) die("slock: close: %s\n", strerror(errno));
-                execvp(argv[0], argv);
-                fprintf(stderr, "slock: execvp %s: %s\n", argv[0], strerror(errno));
-                _exit(1);
-        }
     }
 
     /* everything is now blank. Wait for the correct password */
