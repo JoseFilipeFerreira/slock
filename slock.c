@@ -368,7 +368,6 @@ int main(int argc, char** argv) {
     int width = scr->width;
     int height = scr->height;
 
-    int pixelSize = 10;
     for (int y = 0; y < height; y = MIN(y + pixelSize, scr->height)) {
         for (int x = 0; x < width; x = MIN(x + pixelSize, scr->width)) {
             int red = 0;
