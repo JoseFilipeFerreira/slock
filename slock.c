@@ -24,6 +24,7 @@ enum { INIT, INPUT, FAILED, NUMCOLS };
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 char* argv0;
@@ -51,7 +52,7 @@ static void die(const char* errstr, ...) {
     exit(1);
 }
 
-#define MIN(A, B) A < B ? A : B
+#define MIN(A, B) (A < B ? A : B)
 
 static void dontkillme(void) {
     FILE* f;
@@ -298,6 +299,84 @@ static void usage(void) {
     die("usage: slock [-v] [cmd [arg ...]]\n");
 }
 
+struct Pixel {
+    union {
+        struct {
+            unsigned char a;
+            unsigned char red;
+            unsigned char green;
+            unsigned char blue;
+        };
+        DATA32 data;
+    };
+};
+
+void compute_pixel(
+    Screen* scr, DATA32* data, unsigned int x, unsigned int y, unsigned int pixelSize) {
+    unsigned int red = 0;
+    unsigned int green = 0;
+    unsigned int blue = 0;
+    unsigned int alpha = 0;
+
+    unsigned int width = scr->width;
+    unsigned int height = scr->height;
+
+    unsigned int height_rect = MIN(pixelSize, height - y);
+    unsigned int width_rect = MIN(pixelSize, width - x);
+
+    struct Pixel p;
+    for (unsigned int j = 0; j < height_rect; j++) {
+        for (unsigned int i = 0; i < width_rect; i++) {
+            p.data = data[width * (y + j) + (x + i)];
+            alpha += p.a;
+            red += p.red;
+            green += p.green;
+            blue += p.blue;
+        }
+    }
+    unsigned int rect_area = height_rect * width_rect;
+
+    p.red = red / rect_area;
+    p.green = green / rect_area;
+    p.blue = blue / rect_area;
+    p.a = alpha / rect_area;
+
+    for (unsigned int j = 0; j < height_rect; j++) {
+        for (unsigned int i = 0; i < width_rect; i++) {
+            data[width * (y + j) + (x + i)] = p.data;
+        }
+    }
+}
+
+/* struct tile_info { */
+/*     Screen* scr; */
+/*     DATA32* data; */
+/*     unsigned int x_start; */
+/*     unsigned int y_start; */
+/*     unsigned int x_max; */
+/*     unsigned int y_max; */
+/*     unsigned int pixelSize; */
+/* }; */
+
+/* void* compute_tile(void* vargs) { */
+
+/*     struct tile_info* info = (struct tile_info*) vargs; */
+
+/*     unsigned int width = info->scr->width; */
+/*     unsigned int height = info->scr->height; */
+
+/*     for (unsigned int y = info->y_start; y < MIN(info->y_max, height); */
+/*          y = MIN(y + pixelSize, height)) { */
+/*         for (unsigned int x = info->x_start; x < MIN(info->x_max, width); */
+/*              x = MIN(x + pixelSize, width)) { */
+/*             puts("====================="); */
+/*             compute_pixel(info->scr, info->data, x, y, info->pixelSize); */
+/*         } */
+/*     } */
+
+/*     return 0; */
+/* } */
+
 int main(int argc, char** argv) {
     struct xrandr rr;
     struct lock** locks;
@@ -365,37 +444,18 @@ int main(int argc, char** argv) {
     }
 
     /*Pixelation*/
-    int width = scr->width;
-    int height = scr->height;
+    unsigned int width = scr->width;
+    unsigned int height = scr->height;
 
-    for (int y = 0; y < height; y = MIN(y + pixelSize, scr->height)) {
-        for (int x = 0; x < width; x = MIN(x + pixelSize, scr->width)) {
-            int red = 0;
-            int green = 0;
-            int blue = 0;
+    DATA32* data = imlib_image_get_data();
 
-            Imlib_Color pixel;
-
-            int height_rect = MIN(pixelSize, scr->height - y);
-            int width_rect = MIN(pixelSize, scr->width - x);
-
-            for (int j = 0; j < height_rect; j++) {
-                for (int i = 0; i < width_rect; i++) {
-                    imlib_image_query_pixel(x + i, y + j, &pixel);
-                    red += pixel.red;
-                    green += pixel.green;
-                    blue += pixel.blue;
-                }
-            }
-            int rect_area = height_rect * width_rect;
-            red /= rect_area;
-            green /= rect_area;
-            blue /= rect_area;
-
-            imlib_context_set_color(red, green, blue, pixel.alpha);
-            imlib_image_fill_rectangle(x, y, width_rect, height_rect);
+    for (unsigned int y = 0; y < height; y = MIN(y + pixelSize, height)) {
+        for (unsigned int x = 0; x < width; x = MIN(x + pixelSize, width)) {
+            compute_pixel(scr, data, x, y, pixelSize);
         }
     }
+
+    imlib_image_put_back_data(data);
 
     /* check for Xrandr support */
     rr.active = XRRQueryExtension(dpy, &rr.evbase, &rr.errbase);
