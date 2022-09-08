@@ -12,4 +12,4 @@ static const char* colorname[NUMCOLS] = {
 static const int failonclear = 1;
 
 /* pixel size in pixelization */
-const unsigned int pixelSize = 10;
+const unsigned int pixel_size = 10;
