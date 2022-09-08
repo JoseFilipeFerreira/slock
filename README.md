@@ -1,10 +1,9 @@
 # :lock: slock
 
-Simple screen locker utility for X with pixelized screenshot as background.
+Simple screen locker utility for X with pixelized screenshot as background 
+(Fork of the suckless [slock](https://tools.suckless.org/slock/)).
 
-Now with blazing fast pixelization.
-
-Fork of the suckless [slock](https://tools.suckless.org/slock/).
+Now with :rocket:**blazing fast**:rocket: pixelization!
 
 |            	            | time (ms) 	| speedup 	|
 |------------	            |-----------	|---------	|
@@ -17,16 +16,12 @@ Fork of the suckless [slock](https://tools.suckless.org/slock/).
 In order to build slock you need the Xlib header files.
 
 ## Installation
-Edit config.mk to match your local setup (slock is installed into
+Edit config.mk to match your local setup (installs into
 the /usr/local namespace by default).
 
-Afterwards enter the following command to build and install slock
-(if necessary as root):
-
 ```bash
-    make clean install
+make clean install
 ```
 
-
-# Running
+## Running
 Simply invoke the `slock` command. To get out of it, enter your password.
